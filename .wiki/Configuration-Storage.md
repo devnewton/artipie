@@ -32,6 +32,7 @@ Supported settings for S3 storage are:
  - `bucket` (string, **required**) - bucket name
  - `region` (string, optional) - bucket region name
  - `endpoint` (string, optional) - S3 API provider URL, default is standard AWS S3 endpoint 
+ - `accessedAt` (boolean, optional) - Store last access time in object `accessedAt` tags 
  - `credentials` (map, **optional**):
    - `type` (string, **required inside the credentials map**) - authentication type, one of: `basic`
    - `accessKeyId` (string, **required inside the credentials map**) - access API key ID

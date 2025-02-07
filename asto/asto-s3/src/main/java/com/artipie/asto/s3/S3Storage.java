@@ -14,6 +14,7 @@ import com.artipie.asto.UnderLockOperation;
 import com.artipie.asto.ValueNotFoundException;
 import com.artipie.asto.lock.storage.StorageLock;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -33,19 +34,22 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.Tagging;
 
 /**
  * Storage that holds data in S3 storage.
  *
- * @since 0.1
  * @todo #87:60min Do not await abort to complete if save() failed.
- *  In case uploading content fails inside {@link S3Storage#save(Key, Content)} method
- *  we are doing abort() for multipart upload.
- *  Also whole operation does not complete until abort() is complete.
- *  It would be better to finish save() operation right away and do abort() in background,
- *  but it makes testing the method difficult.
+ * In case uploading content fails inside {@link S3Storage#save(Key, Content)} method
+ * we are doing abort() for multipart upload.
+ * Also whole operation does not complete until abort() is complete.
+ * It would be better to finish save() operation right away and do abort() in background,
+ * but it makes testing the method difficult.
+ * @since 0.1
  */
 @SuppressWarnings("PMD.TooManyMethods")
 public final class S3Storage implements Storage {
@@ -71,6 +75,11 @@ public final class S3Storage implements Storage {
     private final boolean multipart;
 
     /**
+     * Store accessed at timestamp as object tag "accessed-at"
+     */
+    private final boolean accessedAt;
+
+    /**
      * S3 storage identifier: endpoint of the storage S3 client and bucket id.
      */
     private final String id;
@@ -83,7 +92,7 @@ public final class S3Storage implements Storage {
      * @param endpoint S3 client endpoint
      */
     public S3Storage(final S3AsyncClient client, final String bucket, final String endpoint) {
-        this(client, bucket, true, endpoint);
+        this(client, bucket, true, true, endpoint);
     }
 
     /**
@@ -94,13 +103,17 @@ public final class S3Storage implements Storage {
      * @param multipart Multipart allowed flag.
      *  <code>true</code> - if multipart feature is allowed for larger blobs,
      *  <code>false</code> otherwise.
+     * @param accessedAt Accessed time store flag.
+     *  <code>true</code> - if true accessed time is stored as object tag on value retrieval
+     *  <code>false</code> otherwise
      * @param endpoint S3 client endpoint
      */
-    public S3Storage(final S3AsyncClient client, final String bucket, final boolean multipart,
-        final String endpoint) {
+    public S3Storage(final S3AsyncClient client, final String bucket, final boolean multipart, final boolean accessedAt,
+                     final String endpoint) {
         this.client = client;
         this.bucket = bucket;
         this.multipart = multipart;
+        this.accessedAt = accessedAt;
         this.id = String.format("S3: %s %s", endpoint, this.bucket);
     }
 
@@ -205,6 +218,19 @@ public final class S3Storage implements Storage {
 
     @Override
     public CompletableFuture<Content> value(final Key key) {
+        if(this.accessedAt) {
+            this.client.putObjectTagging(
+                    PutObjectTaggingRequest.builder()
+                            .bucket(this.bucket)
+                            .key(key.string())
+                            .tagging(Tagging.builder()
+                                    .tagSet(Tag.builder()
+                                            .key("accessedAt")
+                                            .value(Instant.now().toString())
+                                            .build())
+                                    .build()).
+                            build());
+        }
         final CompletableFuture<Content> promise = new CompletableFuture<>();
         this.client.getObject(
             GetObjectRequest.builder()
@@ -264,7 +290,7 @@ public final class S3Storage implements Storage {
     /**
      * Uploads content using put request.
      *
-     * @param key Object key.
+     * @param key     Object key.
      * @param content Object content to be uploaded.
      * @return Completion stage which is completed when response received from S3.
      */

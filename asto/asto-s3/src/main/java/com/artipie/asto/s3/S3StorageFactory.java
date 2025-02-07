@@ -30,6 +30,7 @@ public final class S3StorageFactory implements StorageFactory {
             new Config.StrictStorageConfig(cfg)
                 .string("bucket"),
             !"false".equals(cfg.string("multipart")),
+                !"false".equals(cfg.string("accessedAt")),
             endpoint(cfg).orElse("def endpoint")
         );
     }
