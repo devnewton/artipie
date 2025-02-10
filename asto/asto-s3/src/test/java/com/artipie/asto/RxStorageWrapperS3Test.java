@@ -17,11 +17,13 @@ import hu.akarnokd.rxjava2.interop.SingleInterop;
 import io.reactivex.Single;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
@@ -29,6 +31,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for {@link RxStorageWrapper}.
@@ -67,6 +71,7 @@ final class RxStorageWrapperS3Test {
                 "s3",
                 new Config.YamlStorageConfig(
                     Yaml.createYamlMappingBuilder()
+                        .add("accessedAt", "true")
                         .add("region", "us-east-1")
                         .add("bucket", this.bucket)
                         .add("endpoint", String.format("http://localhost:%d", MOCK.getHttpPort()))
@@ -164,6 +169,26 @@ final class RxStorageWrapperS3Test {
             this.wrapper.size(key).blockingGet(),
             new IsEqual<>((long) text.length())
         );
+    }
+
+    @Test
+    void readsMeta() {
+        final Key key = new Key.From("testmeta.txt");
+        final String text = "my content for meta test";
+        final Instant beforeSaveInstant = Instant.now().minusSeconds(2);
+        this.original.save(
+                key,
+                new Content.From(
+                        text.getBytes(StandardCharsets.UTF_8)
+                )
+        ).join();
+        this.wrapper.value(key).blockingGet();
+        Meta metadata = this.wrapper.metadata(key).blockingGet();
+        metadata.read(Meta.OP_ACCESSED_AT)
+                .ifPresentOrElse(accessedAt ->
+                                Assumptions.assumeTrue(accessedAt.isAfter(beforeSaveInstant)
+                                        , "accessed-at is incorrect")
+                        , () -> fail("No accessed-at metadata"));
     }
 
     @Test

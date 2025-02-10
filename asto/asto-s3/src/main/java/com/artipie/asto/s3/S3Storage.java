@@ -15,6 +15,7 @@ import com.artipie.asto.ValueNotFoundException;
 import com.artipie.asto.lock.storage.StorageLock;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,10 @@ import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
@@ -39,6 +43,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.Tagging;
+
+import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 
 /**
  * Storage that holds data in S3 storage.
@@ -203,17 +209,27 @@ public final class S3Storage implements Storage {
 
     @Override
     public CompletableFuture<? extends Meta> metadata(final Key key) {
-        return this.client.headObject(
-            HeadObjectRequest.builder()
-                .bucket(this.bucket)
-                .key(key.string())
-                .build()
-        ).thenApply(S3HeadMeta::new).handle(
-            new InternalExceptionHandle<>(
-                NoSuchKeyException.class,
-                cause -> new ValueNotFoundException(key, cause)
-            )
-        ).thenCompose(Function.identity());
+        final String keyStr = key.string();
+        final CompletableFuture<HeadObjectResponse> headObjectResponseFuture = this.client.headObject(
+                HeadObjectRequest.builder()
+                        .bucket(this.bucket)
+                        .key(keyStr)
+                        .build());
+        final CompletableFuture<GetObjectTaggingResponse> objectTaggingResponseFuture = this.accessedAt ?
+            this.client.getObjectTagging(
+                GetObjectTaggingRequest.builder()
+                        .bucket(this.bucket)
+                        .key(keyStr).build())
+                : CompletableFuture.completedFuture(null);
+        return CompletableFuture.allOf(headObjectResponseFuture, objectTaggingResponseFuture)
+                .thenApply(unused -> {
+                    return new S3HeadMeta(headObjectResponseFuture.join(), objectTaggingResponseFuture.join());
+        }).handle(
+                new InternalExceptionHandle<>(
+                        NoSuchKeyException.class,
+                        cause -> new ValueNotFoundException(key, cause)
+                )
+            ).thenCompose(Function.identity());
     }
 
     @Override
@@ -225,8 +241,8 @@ public final class S3Storage implements Storage {
                             .key(key.string())
                             .tagging(Tagging.builder()
                                     .tagSet(Tag.builder()
-                                            .key("accessedAt")
-                                            .value(Instant.now().toString())
+                                            .key("Last-Accessed")
+                                            .value(RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now()))
                                             .build())
                                     .build()).
                             build());

@@ -6,6 +6,7 @@ package com.artipie.asto.rx;
 
 import com.artipie.asto.Content;
 import com.artipie.asto.Key;
+import com.artipie.asto.Meta;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import java.util.Collection;
@@ -60,6 +61,13 @@ public interface RxStorage {
      * @return Size of value in bytes.
      */
     Single<Long> size(Key key);
+
+    /**
+     * Get content metadata.
+     * @param key Content key
+     * @return Metadata
+     */
+    Single<? extends Meta> metadata(Key key);
 
     /**
      * Obtain bytes by key.

@@ -6,6 +6,7 @@ package com.artipie.asto.rx;
 
 import com.artipie.asto.Content;
 import com.artipie.asto.Key;
+import com.artipie.asto.Meta;
 import com.artipie.asto.Storage;
 import hu.akarnokd.rxjava2.interop.CompletableInterop;
 import hu.akarnokd.rxjava2.interop.SingleInterop;
@@ -82,6 +83,11 @@ public final class RxStorageWrapper implements RxStorage {
     @Deprecated
     public Single<Long> size(final Key key) {
         return Single.defer(() -> SingleInterop.fromFuture(this.storage.size(key))).observeOn(this.scheduler);
+    }
+
+    @Override
+    public Single<? extends Meta> metadata(Key key) {
+        return Single.defer(() -> SingleInterop.fromFuture(this.storage.metadata(key))).observeOn(this.scheduler);
     }
 
     @Override

@@ -24,7 +24,8 @@ final class S3HeadMetaTest {
                 HeadObjectResponse.builder()
                     .contentLength(len)
                     .eTag("empty")
-                    .build()
+                    .build(),
+                    null
             ).read(Meta.OP_SIZE).orElseThrow(IllegalStateException::new),
             new IsEqual<>(len)
         );
@@ -38,7 +39,8 @@ final class S3HeadMetaTest {
                 HeadObjectResponse.builder()
                     .contentLength(0L)
                     .eTag(hash)
-                    .build()
+                    .build(),
+                    null
             ).read(Meta.OP_MD5).orElseThrow(IllegalStateException::new),
             new IsEqual<>(hash)
         );
