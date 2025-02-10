@@ -5,6 +5,8 @@
 package com.artipie.asto;
 
 import com.artipie.ArtipieException;
+import com.artipie.asto.cleanup.CleanupPolicy;
+import com.artipie.asto.cleanup.CleanupReport;
 import com.artipie.asto.fs.FileStorage;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -114,6 +116,15 @@ public interface Storage {
                 return res;
             }
         );
+    }
+
+    /**
+     *
+     * @param cleanupPolicy Defines cleaning criteria
+     * @return Cleanup report
+     */
+    default CompletableFuture<CleanupReport> cleanup(CleanupPolicy cleanupPolicy) {
+        return CompletableFuture.completedFuture(new CleanupReport());
     }
 
     /**
