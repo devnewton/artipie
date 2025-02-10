@@ -184,6 +184,11 @@ final class RxStorageWrapperS3Test {
         ).join();
         this.wrapper.value(key).blockingGet();
         Meta metadata = this.wrapper.metadata(key).blockingGet();
+        metadata.read(Meta.OP_UPDATED_AT)
+                .ifPresentOrElse(updatedAt ->
+                                Assumptions.assumeTrue(updatedAt.isAfter(beforeSaveInstant)
+                                        , "updated-at is incorrect")
+                        , () -> fail("No updated-at metadata"));
         metadata.read(Meta.OP_ACCESSED_AT)
                 .ifPresentOrElse(accessedAt ->
                                 Assumptions.assumeTrue(accessedAt.isAfter(beforeSaveInstant)

@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
@@ -49,6 +48,9 @@ final class S3HeadMeta implements Meta {
         Meta.OP_SIZE.put(raw, this.headObjectResponse.contentLength());
         // ETag is a quoted MD5 of blob content according to S3 docs
         Meta.OP_MD5.put(raw, this.headObjectResponse.eTag().replaceAll("\"", ""));
+        if(null != this.headObjectResponse.lastModified()) {
+            Meta.OP_UPDATED_AT.put(raw, this.headObjectResponse.lastModified());
+        }
         if(null != this.taggingObjectResponse && this.taggingObjectResponse.hasTagSet()) {
             for(var tag : this.taggingObjectResponse.tagSet()) {
                 if("Last-Accessed".equals(tag.key())) {
