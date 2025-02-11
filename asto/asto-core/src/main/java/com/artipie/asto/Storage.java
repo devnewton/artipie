@@ -5,9 +5,9 @@
 package com.artipie.asto;
 
 import com.artipie.ArtipieException;
-import com.artipie.asto.cleanup.CleanupPolicy;
-import com.artipie.asto.cleanup.CleanupReport;
 import com.artipie.asto.fs.FileStorage;
+import org.reactivestreams.Publisher;
+
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -119,13 +119,12 @@ public interface Storage {
     }
 
     /**
-     *
-     * @param cleanupPolicy Defines cleaning criteria
-     * @return Cleanup report
+     * Walk through all storage keys
+     * @return publisher
      */
-    default CompletableFuture<CleanupReport> cleanup(CleanupPolicy cleanupPolicy) {
-        return CompletableFuture.completedFuture(new CleanupReport());
-    }
+    default Publisher<Key> walk() {
+        throw new RuntimeException("Unsupported");
+    };
 
     /**
      * Runs operation exclusively for specified key.

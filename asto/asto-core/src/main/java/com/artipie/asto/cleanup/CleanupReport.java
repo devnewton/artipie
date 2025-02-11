@@ -37,4 +37,13 @@ public class CleanupReport {
     public void setNbAged(int nbAged) {
         this.nbAged = nbAged;
     }
+
+    @Override
+    public String toString() {
+        return "CleanupReport{" +
+                "totalCleaned=" + totalCleaned +
+                ", nbUnused=" + nbUnused +
+                ", nbAged=" + nbAged +
+                '}';
+    }
 }
