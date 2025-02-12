@@ -49,21 +49,25 @@ public class Cleaner implements Subscriber<Key> {
             var meta = storage.metadata(key).get();
             boolean shouldDelete = false;
 
-            var updatedAt = meta.read(Meta.OP_UPDATED_AT);
-            if(updatedAt.isPresent()) {
-                var age = Duration.between(updatedAt.get(), this.startupInstant);
-                if(age.compareTo(policy.getMaxAge()) > 0) {
-                    report.setNbAged(report.getNbAged()+1);
-                    shouldDelete = true;
+            if(null != policy.getMaxAge()) {
+                var updatedAt = meta.read(Meta.OP_UPDATED_AT);
+                if (updatedAt.isPresent()) {
+                    var age = Duration.between(updatedAt.get(), this.startupInstant);
+                    if (age.compareTo(policy.getMaxAge()) > 0) {
+                        report.setNbAged(report.getNbAged() + 1);
+                        shouldDelete = true;
+                    }
                 }
             }
 
-            var accessedAt = meta.read(Meta.OP_ACCESSED_AT);
-            if(accessedAt.isPresent()) {
-                var unused = Duration.between(accessedAt.get(), this.startupInstant);
-                if (unused.compareTo(policy.getMaxUnused()) > 0) {
-                    report.setNbUnused(report.getNbUnused() + 1);
-                    shouldDelete = true;
+            if(null != policy.getMaxUnused()) {
+                var accessedAt = meta.read(Meta.OP_ACCESSED_AT);
+                if (accessedAt.isPresent()) {
+                    var unused = Duration.between(accessedAt.get(), this.startupInstant);
+                    if (unused.compareTo(policy.getMaxUnused()) > 0) {
+                        report.setNbUnused(report.getNbUnused() + 1);
+                        shouldDelete = true;
+                    }
                 }
             }
 
