@@ -1,3 +1,7 @@
+/*
+ * The MIT License (MIT) Copyright (c) 2020-2023 artipie.com
+ * https://github.com/artipie/artipie/blob/master/LICENSE.txt
+ */
 package com.artipie.asto.cleanup;
 
 import com.artipie.asto.Key;
@@ -33,7 +37,6 @@ public class Cleaner implements Subscriber<Key> {
         storage.walk().subscribe(cleaner);
         return cleaner.reportFuture;
     }
-
 
     @Override
     public void onSubscribe(Subscription s) {

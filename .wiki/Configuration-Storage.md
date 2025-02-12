@@ -120,6 +120,43 @@ Initiated storage factory [type={your-storage-type}, class={your-storage-factory
 You can study [a storage implementation based on Redis java client Redisson](https://github.com/artipie/asto/tree/master/asto-redis/src/main/java/com/artipie/asto/redis)
 as a good example.
 
+# Storage cleanup
+
+Some storage (fs and s3) support scheduled cleanup using two criteria:
+
+- maxAge : remove object if has not been *modified* for some time
+- maxUnused : remove object if has not been *accessed* for some time
+
+*Example:*
+```yaml
+storage:
+  type: fs
+  path: /var/artipie
+  cleanup:
+    maxAge: P365D
+    maxUnused: P30D
+```
+
+Note that for maxUnused criteria to work on s3 storage, you need to activate *accessedAt*.
+
+*Example:*
+```yaml
+storage:
+  type: s3
+  bucket: artipie
+  region: east
+  endpoint: https://minio.selfhosted/s3
+  accessedAt: true
+  credentials:
+    type: basic
+    accessKeyId: asagn8as8f81
+    secretAccessKey: 9889sg8nas8ng
+  cleanup:
+    maxAge: P365D
+    maxUnused: P30D
+```
+
+
 # Storage Verification tests
 
 The `asto-core` module contains verification tests which are designed to confirm correctness of a storage implementation.

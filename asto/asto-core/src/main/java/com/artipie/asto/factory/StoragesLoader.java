@@ -6,6 +6,8 @@ package com.artipie.asto.factory;
 
 import com.artipie.ArtipieException;
 import com.artipie.asto.Storage;
+import com.artipie.asto.cleanup.CleanupJob;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -47,7 +49,9 @@ public final class StoragesLoader
         if (factory == null) {
             throw new StorageNotFoundException(type);
         }
-        return factory.newStorage(cfg);
+        var storage = factory.newStorage(cfg);
+        CleanupJob.schedule(storage, cfg.config("cleanup"));
+        return storage;
     }
 
     /**
