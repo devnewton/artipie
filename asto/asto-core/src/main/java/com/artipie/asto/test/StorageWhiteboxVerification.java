@@ -11,17 +11,17 @@ import com.artipie.asto.Storage;
 import com.artipie.asto.SubStorage;
 import com.artipie.asto.ValueNotFoundException;
 import com.artipie.asto.blocking.BlockingStorage;
+import com.artipie.asto.cleanup.Cleaner;
+import com.artipie.asto.cleanup.CleanupPolicy;
 import io.reactivex.Flowable;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -717,6 +717,38 @@ public abstract class StorageWhiteboxVerification {
                 );
             }
         );
+    }
+
+    @Test
+    void cleanup() throws Exception {
+        this.execute(pair -> {
+
+            final Storage storage = pair.getValue();
+            if(storage.isWalkable()) {
+                storage.save(new Key.From("aged_key1"), Content.EMPTY).join();
+                storage.save(new Key.From("aged_key2"), Content.EMPTY).join();
+                TimeUnit.SECONDS.sleep(5);
+                storage.save(new Key.From("recent_key1"), Content.EMPTY).join();
+                storage.save(new Key.From("recent_key2"), Content.EMPTY).join();
+                storage.save(new Key.From("recent_key3"), Content.EMPTY).join();
+
+                var cleanupPolicy = new CleanupPolicy();
+                cleanupPolicy.setMaxAge(Duration.ofSeconds(4));
+                var report = Cleaner.cleanup(storage, cleanupPolicy).get();
+                MatcherAssert.assertThat(
+                        report.getNbAged(),
+                        new IsEqual<>(2)
+                );
+                MatcherAssert.assertThat(
+                        report.getTotalCleaned(),
+                        new IsEqual<>(2)
+                );
+                MatcherAssert.assertThat("aged_key1 should have been cleaned up", !storage.exists(new Key.From("aged_key1")).get());
+                MatcherAssert.assertThat("aged_key1 should have been cleaned up", !storage.exists(new Key.From("aged_key2")).get());
+                MatcherAssert.assertThat("recent_key2 should not have been cleaned up", storage.exists(new Key.From("recent_key2")).get());
+                MatcherAssert.assertThat("recent_key3 should not have been cleaned up", storage.exists(new Key.From("recent_key3")).get());
+            }
+        });
     }
 
     /**

@@ -22,12 +22,10 @@ import io.reactivex.Single;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.reactivex.RxHelper;
 import io.vertx.reactivex.core.Vertx;
+import org.reactivestreams.Publisher;
+
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -230,6 +228,27 @@ public final class VertxFileStorage implements Storage {
     @Override
     public String identifier() {
         return this.id;
+    }
+
+    @Override
+    public boolean isWalkable() {
+        return true;
+    }
+
+    @Override
+    public Publisher<Key> walk() {
+        return keySubscriber -> {
+            try(var walk = Files.walk(this.dir)) {
+                walk.forEach(path -> {
+                    if(Files.isRegularFile(path)) {
+                        var key = new Key.From(this.dir.relativize(path).toString());
+                        keySubscriber.onNext(key);
+                    }
+                });
+            } catch (IOException e) {
+                keySubscriber.onError(e);
+            }
+        };
     }
 
     /**

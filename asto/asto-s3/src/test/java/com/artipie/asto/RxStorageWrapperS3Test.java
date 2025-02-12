@@ -256,31 +256,4 @@ final class RxStorageWrapperS3Test {
         }, executor).toCompletableFuture().join();
         MatcherAssert.assertThat("Values must match", result.equals(data));
     }
-
-    @Test
-    void cleanup() throws ExecutionException, InterruptedException {
-        this.original.save(new Key.From("aged_key1"), Content.EMPTY).join();
-        this.original.save(new Key.From("aged_key2"), Content.EMPTY).join();
-        TimeUnit.SECONDS.sleep(5);
-        this.original.save(new Key.From("recent_key1"), Content.EMPTY).join();
-        this.original.save(new Key.From("recent_key2"), Content.EMPTY).join();
-        this.original.save(new Key.From("recent_key3"), Content.EMPTY).join();
-
-        var cleanupPolicy = new CleanupPolicy();
-        cleanupPolicy.setMaxAge(Duration.ofSeconds(4));
-        var report = Cleaner.cleanup(this.original, cleanupPolicy).get();
-        MatcherAssert.assertThat(
-                report.getNbAged(),
-                new IsEqual<>(2)
-        );
-        MatcherAssert.assertThat(
-                report.getTotalCleaned(),
-                new IsEqual<>(2)
-        );
-        MatcherAssert.assertThat("aged_key1 should have been cleaned up", !this.original.exists(new Key.From("aged_key1")).get());
-        MatcherAssert.assertThat("aged_key1 should have been cleaned up", !this.original.exists(new Key.From("aged_key2")).get());
-        MatcherAssert.assertThat("recent_key2 should not have been cleaned up", this.original.exists(new Key.From("recent_key2")).get());
-        MatcherAssert.assertThat("recent_key3 should not have been cleaned up", this.original.exists(new Key.From("recent_key3")).get());
-
-    }
 }

@@ -118,12 +118,18 @@ public interface Storage {
         );
     }
 
+    default boolean isWalkable() {
+        return false;
+    }
+
     /**
      * Walk through all storage keys
      * @return publisher
      */
     default Publisher<Key> walk() {
-        throw new RuntimeException("Unsupported");
+        return s -> {
+            s.onError(new UnsupportedOperationException());
+        };
     };
 
     /**

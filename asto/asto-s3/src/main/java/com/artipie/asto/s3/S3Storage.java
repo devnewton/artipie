@@ -293,6 +293,11 @@ public final class S3Storage implements Storage {
     }
 
     @Override
+    public boolean isWalkable() {
+        return true;
+    }
+
+    @Override
     public Publisher<Key> walk() {
         return keySubscriber -> client.listObjectsV2Paginator(
                 ListObjectsV2Request.builder()
