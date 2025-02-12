@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.cqfn.rio.file.File;
+import org.reactivestreams.Publisher;
 
 /**
  * Simple storage, in files.
@@ -239,6 +240,29 @@ public final class FileStorage implements Storage {
     @Override
     public String identifier() {
         return this.id;
+    }
+
+    @Override
+    public boolean isWalkable() {
+        return true;
+    }
+
+    @Override
+    public Publisher<Key> walk() {
+        return keySubscriber -> {
+            try(var walk = Files.walk(this.dir)) {
+                walk.forEach(path -> {
+                    if(Files.isRegularFile(path)) {
+                        var key = new Key.From(this.dir.relativize(path).toString());
+                        keySubscriber.onNext(key);
+                    }
+                });
+            } catch (IOException e) {
+                keySubscriber.onError(e);
+            } finally {
+                keySubscriber.onComplete();
+            }
+        };
     }
 
     /**

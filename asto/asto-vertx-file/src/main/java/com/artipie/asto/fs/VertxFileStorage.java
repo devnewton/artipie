@@ -26,6 +26,7 @@ import org.reactivestreams.Publisher;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -222,7 +223,19 @@ public final class VertxFileStorage implements Storage {
 
     @Override
     public CompletableFuture<? extends Meta> metadata(final Key key) {
-        return CompletableFuture.completedFuture(Meta.EMPTY);
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    final BasicFileAttributes attrs;
+                    try {
+                        attrs = Files.readAttributes(this.path(key), BasicFileAttributes.class);
+                    } catch (final NoSuchFileException fex) {
+                        throw new ValueNotFoundException(key, fex);
+                    } catch (final IOException iox) {
+                        throw new ArtipieIOException(iox);
+                    }
+                    return new FileMeta(attrs);
+                }
+        );
     }
 
     @Override
@@ -247,6 +260,8 @@ public final class VertxFileStorage implements Storage {
                 });
             } catch (IOException e) {
                 keySubscriber.onError(e);
+            } finally {
+                keySubscriber.onComplete();
             }
         };
     }
