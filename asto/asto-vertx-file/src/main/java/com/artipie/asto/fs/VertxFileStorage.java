@@ -94,8 +94,8 @@ public final class VertxFileStorage implements Storage {
                     } else {
                         dirnamelen = path.toString().length() - prefix.string().length();
                     }
-                    try {
-                        keys = Files.walk(path)
+                    try(var walk = Files.walk(path)) {
+                        keys = walk
                             .filter(Files::isRegularFile)
                             .map(Path::toString)
                             .map(p -> p.substring(dirnamelen))
