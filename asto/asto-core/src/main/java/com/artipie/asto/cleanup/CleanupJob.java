@@ -12,6 +12,7 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import java.time.Duration;
 
+@DisallowConcurrentExecution
 public class CleanupJob implements Job {
 
     @Override
