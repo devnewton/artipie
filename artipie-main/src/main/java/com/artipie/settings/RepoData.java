@@ -15,6 +15,9 @@ import com.artipie.asto.Copy;
 import com.artipie.asto.Key;
 import com.artipie.asto.Storage;
 import com.artipie.asto.SubStorage;
+import com.artipie.asto.cleanup.Cleaner;
+import com.artipie.asto.cleanup.CleanupPolicy;
+import com.artipie.asto.cleanup.CleanupReport;
 import com.artipie.cache.StoragesCache;
 import com.jcabi.log.Logger;
 
@@ -149,5 +152,12 @@ public final class RepoData {
                 return res;
 
             });
+    }
+
+    public CompletionStage<CleanupReport> cleanup(RepositoryName rname, CleanupPolicy cleanupPolicy) {
+        return this.repoStorage(rname)
+                .thenCompose(
+                        asto -> Cleaner.cleanup(asto, cleanupPolicy)
+                );
     }
 }

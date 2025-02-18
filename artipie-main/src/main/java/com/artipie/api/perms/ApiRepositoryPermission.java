@@ -83,6 +83,7 @@ public final class ApiRepositoryPermission extends RestApiPermission {
         UPDATE(0x1),
         MOVE(0x10),
         DELETE(0x8),
+        CLEANUP(0x5),
         ALL(0x4 | 0x2 | 0x8 | 0x10 | 0x1);
 
         /**

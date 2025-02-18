@@ -8,16 +8,19 @@ import com.artipie.api.perms.ApiRepositoryPermission;
 import com.artipie.api.verifier.ExistenceVerifier;
 import com.artipie.api.verifier.ReservedNamesVerifier;
 import com.artipie.api.verifier.SettingsDuplicatesVerifier;
+import com.artipie.asto.cleanup.CleanupPolicy;
 import com.artipie.http.auth.AuthUser;
 import com.artipie.scheduling.MetadataEventQueues;
 import com.artipie.security.policy.Policy;
 import com.artipie.settings.RepoData;
 import com.artipie.settings.cache.FiltersCache;
 import com.artipie.settings.repo.CrudRepoSettings;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.RouterBuilder;
 import java.security.PermissionCollection;
+import java.time.Duration;
 import java.util.Optional;
 import javax.json.JsonObject;
 import org.eclipse.jetty.http.HttpStatus;
@@ -135,6 +138,15 @@ public final class RepositoryRest extends BaseRest {
             )
             .handler(this::moveRepo)
             .failureHandler(this.errorHandler(HttpStatus.INTERNAL_SERVER_ERROR_500));
+        rbr.operation("cleanupRepo")
+                .handler(
+                        new AuthzHandler(
+                                this.policy,
+                                new ApiRepositoryPermission(ApiRepositoryPermission.RepositoryAction.CLEANUP)
+                        )
+                )
+                .handler(this::cleanupRepo)
+                .failureHandler(this.errorHandler(HttpStatus.INTERNAL_SERVER_ERROR_500));
     }
 
     /**
@@ -302,6 +314,41 @@ public final class RepositoryRest extends BaseRest {
                 this.cache.invalidate(rname.toString());
                 context.response().setStatusCode(HttpStatus.OK_200).end();
             }
+        }
+    }
+
+    /**
+     * Clean up a repository.
+     * @param context Routing context
+     */
+    private void cleanupRepo(final RoutingContext context) {
+        final RepositoryName rname = new RepositoryName.FromRequest(context);
+        final CleanupPolicy cleanupPolicy = new CleanupPolicy();
+        Validator validator = new Validator.All(
+                Validator.validator(new ExistenceVerifier(rname, this.crs), HttpStatus.NOT_FOUND_404),
+                Validator.validator(() -> {
+                    final var json = BaseRest.readJsonObject(context);
+                    if(null == json) {
+                        return false;
+                    }
+                    var maxAge = json.getString("maxAge", null);
+                    if(json.isNull("maxAge")) {
+                        cleanupPolicy.setMaxAge(Duration.parse(maxAge));
+                    }
+                    var maxUnused = json.getString("maxUnused", null);
+                    if(null != maxUnused) {
+                        cleanupPolicy.setMaxUnused(Duration.parse(maxUnused));
+                    }
+                    return true;
+                }, "Invalid json body", HttpStatus.BAD_REQUEST_400)
+        );
+        if (validator.validate(context)) {
+            this.data.cleanup(rname, cleanupPolicy).thenAccept(cleanupReport -> {
+                context.response().setStatusCode(HttpStatus.OK_200).end(Json.encode(cleanupReport));
+            }).exceptionally(throwable -> {
+                context.response().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR_500).end();
+                return null;
+            });
         }
     }
 }

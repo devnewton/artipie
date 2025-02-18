@@ -213,6 +213,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /api/v1/repository/{rname}/cleanup:
+    post:
+      summary: Clean up repository storage
+      operationId: cleanupRepo
+      tags:
+        - repository
+      parameters:
+        - name: rname
+          in: path
+          required: true
+          description: Name of the repository
+          schema:
+            type: string
+      requestBody:
+        description: Cleanup policy
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CleanupPolicy'
+        required: true
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: Cleaning repository with name {rname}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupReport'
+        '400':
+          description: Wrong repository name
+        '404':
+          description: Repository not found
+        '409':
+          description: Repository has settings duplicates
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/v1/repository/{rname}/storages:
     get:
       summary: Get repository storage aliases
@@ -471,6 +514,27 @@ components:
       properties:
         new_name:
           type: string
+    CleanupPolicy:
+      type: object
+      properties:
+        maxUnused:
+          type: string
+          description: "max unused duration (ISO-8601 format PnDTnHnMn.nS)"
+        maxAge:
+          type: string
+          description: "max age duration (ISO-8601 format PnDTnHnMn.nS)"
+    CleanupReport:
+      type: object
+      properties:
+        totalCleaned:
+          type: integer
+          format: int32
+        nbUnused:
+          type: integer
+          format: int32
+        nbAged:
+          type: integer
+          format: int32
   responses:
     UnauthorizedError:
       description: "Access token is missing or invalid"
