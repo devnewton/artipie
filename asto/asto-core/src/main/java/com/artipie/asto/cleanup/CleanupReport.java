@@ -13,6 +13,7 @@ public class CleanupReport {
     private int totalCleaned;
     private int nbUnused;
     private int nbAged;
+    private int nbError;
 
     public int getTotalCleaned() {
         return totalCleaned;
@@ -38,12 +39,21 @@ public class CleanupReport {
         this.nbAged = nbAged;
     }
 
+    public int getNbError() {
+        return nbError;
+    }
+
+    public void setNbError(int nbError) {
+        this.nbError = nbError;
+    }
+
     @Override
     public String toString() {
         return "CleanupReport{" +
                 "totalCleaned=" + totalCleaned +
                 ", nbUnused=" + nbUnused +
                 ", nbAged=" + nbAged +
+                ", nbError=" + nbError +
                 '}';
     }
 }

@@ -83,6 +83,7 @@ public class Cleaner implements Subscriber<Key> {
 
     @Override
     public void onError(Throwable t) {
+        this.report.setNbError(this.report.getNbError() + 1);
         Logger.error(this, "Error cleaning storage %s : %[exception]s", this.storage.identifier(), t);
     }
 
