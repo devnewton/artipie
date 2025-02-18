@@ -302,6 +302,7 @@ public final class S3Storage implements Storage {
                         .bucket(bucket)
                         .build())
                 .subscribe(listObjectsV2Response -> {
+                    keySubscriber.onSubscribe(null);
                     for(var content : listObjectsV2Response.contents()) {
                         keySubscriber.onNext(new Key.From(content.key()));
                     }

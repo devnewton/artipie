@@ -251,6 +251,7 @@ public final class FileStorage implements Storage {
     public Publisher<Key> walk() {
         return keySubscriber -> {
             try(var walk = Files.walk(this.dir)) {
+                keySubscriber.onSubscribe(null);
                 walk.forEach(path -> {
                     if(Files.isRegularFile(path)) {
                         var key = new Key.From(this.dir.relativize(path).toString());

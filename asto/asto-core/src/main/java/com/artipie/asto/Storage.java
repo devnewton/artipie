@@ -128,7 +128,9 @@ public interface Storage {
      */
     default Publisher<Key> walk() {
         return s -> {
+            s.onSubscribe(null);
             s.onError(new UnsupportedOperationException());
+            s.onComplete();
         };
     };
 
