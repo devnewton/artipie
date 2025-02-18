@@ -8,6 +8,7 @@ import com.artipie.asto.Content;
 import com.artipie.asto.Key;
 import com.artipie.asto.Meta;
 import com.artipie.asto.Storage;
+import org.reactivestreams.Publisher;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -117,6 +118,12 @@ public final class JfrStorage implements Storage {
             res = this.original.list(key);
         }
         return res;
+    }
+
+    @Override
+    public Publisher<Key> walk() {
+        //TODO add walk events?
+        return this.original.walk();
     }
 
     @Override
