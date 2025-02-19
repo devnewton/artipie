@@ -332,7 +332,7 @@ public final class RepositoryRest extends BaseRest {
                         return false;
                     }
                     var maxAge = json.getString("maxAge", null);
-                    if(json.isNull("maxAge")) {
+                    if(null != maxAge) {
                         cleanupPolicy.setMaxAge(Duration.parse(maxAge));
                     }
                     var maxUnused = json.getString("maxUnused", null);
